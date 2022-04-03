@@ -97,7 +97,7 @@ mlewrap <-
 
     ##### Optimization ---
     if(hetero){
-      res <-  optim(
+      res <-  stats::optim(
         par = par,                                # Define Startvalues for Parameters
         fn = lik_func,                            # Input function from above
         y = y,                                    # Input DV
@@ -107,7 +107,7 @@ mlewrap <-
         method = method,                          # Define Climbing-Option
         hessian = T)                              # Include Hessian Matrix in Return
     } else {
-      res <- optim(
+      res <- stats::optim(
         par = par,                                # Define Startvalues for Parameters
         fn = lik_func,                            # Input function from above
         y = y,                                    # Input DV
@@ -169,7 +169,7 @@ mlewrap <-
           X_bs <- bs_samp[,2:(ncol(X)+1)  ]         # Index Int. and Bootstrap IVs
           Z_bs <- bs_samp[,(ncol(X)+2):ncol(bs_samp)] # Index Sigma2 IVs
 
-          res_bs  <- optim(                         # Running similar optimization as above:
+          res_bs  <- stats::optim(                         # Running similar optimization as above:
             par = par,                              # Define Startvalues for Parameters
             fn = lik_func,                          # Input function from above
             y = y_bs,                               # Input Bootstrap DV
@@ -186,7 +186,7 @@ mlewrap <-
           y_bs <- bs_samp[,1]                       # Index Bootstrap DV
           X_bs <- bs_samp[,2:ncol(bs_samp)]         # Index Int. and Bootstrap IVs
 
-          res_bs  <- optim(                         # Running similar optimization as above:
+          res_bs  <- stats::optim(                         # Running similar optimization as above:
             par = par,                              # Define Startvalues for Parameters
             fn = lik_func,                          # Input function from above
             y = y_bs,                               # Input Bootstrap DV
