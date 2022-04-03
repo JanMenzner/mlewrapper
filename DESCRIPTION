@@ -1,0 +1,10 @@
+Package: mlewrapper
+Title: Flexible Maximum Likelihood Estimation
+Version: 0.0.1
+Authors@R: person("Jan", "Menzner", email = "Menzner@em-uni-frankfurt.de", role = c("aut", "cre"))
+Maintainer: Jan Menzner <Menzner@em-uni-frankfurt.de>
+Description: Estimates Different versions of Maximum Likelihood Models
+License: `use_gpl_license()`
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2
