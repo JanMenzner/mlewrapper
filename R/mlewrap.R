@@ -59,10 +59,10 @@ mlewrap <-
           gamma <- theta[(k+1):(k+l)]
           sigma2 <- exp(Z %*% gamma)          # Parameterize sigma squared
           e <- y - X %*% beta                     # Calculate the residuals
-          llik <- -1/2*log(sigma2) -              # Estimate Log-Likelihood
+          ll <- -1/2*log(sigma2) -              # Estimate Log-Likelihood
             1/2*(e^2/(sigma2))
-          llik <- sum(llik)
-          return(llik)                                # Return Result for optim()
+          ll <- sum(ll)
+          return(ll)                                # Return Result for optim()
         }
       }
     } else if(ll=="logit" | ll=="scobit"){# Logit
@@ -294,10 +294,10 @@ mlewrap <-
         cat("Likelihood-ratio test of alpha=1: Prob > chi2 =", llratio)
         if(llratio <= 0.05){
           cat("\n")
-          cat(" --> Logit-Model should be prefered")
+          cat(" --> Scobit-Model should be prefered")
         } else{
           cat("\n")
-          cat(" --> Scobit-Model should be prefered")
+          cat(" --> Logit-Model should be prefered")
         }
       } else {
         cat("AIC:", res$aic)
@@ -335,10 +335,10 @@ mlewrap <-
         cat("Likelihood-ratio test of alpha=1: Prob > chi2 =", round(llratio, digits))
         if(llratio <= 0.05){
           cat("\n")
-          cat(" --> Logit-Model should be prefered")
+          cat(" --> Scobit-Model should be prefered")
         } else{
           cat("\n")
-          cat(" --> Scobit-Model should be prefered")
+          cat(" --> Logit-Model should be prefered")
         }
       } else {
         cat("AIC:", round(res$aic, digits))
