@@ -11,6 +11,7 @@ mlewrap <-
                rep(0, ncol(X) + 1)
              }
            } else{rep(0, ncol(X))}, # Creates vector of 0s as start values
+           par_scobit = c(res_logit$par, 0), # Sets scobit start values per default as parameters estimated by logistic regression
            control, # Defines control for optim()
            method, # Defines method of optim()
            lower=-Inf, # Bounds on the variables for the "L-BFGS-B" method
@@ -41,12 +42,12 @@ mlewrap <-
         lik_func <- function(y, X, theta) {# Linear-Regression, Not Heteroskedastic
           n <- nrow(X)                                # No. of observations
           k <- ncol(X)                                # No. of betas
-          beta_hat <- theta[1:k]                      # Subset the parameter vector theta
-          gamma_hat <- theta[k+1]
-          sigma2_hat <- exp(gamma_hat)                # Ensure that sigma^2 is positive
-          e <- y - X %*% beta_hat                     # Calculate the residuals
-          llik <- - (n/2)* log(sigma2_hat) -          # Estimate Log-Likelihood
-            (t (e) %*% (e) / (2*sigma2_hat) )
+          beta <- theta[1:k]                      # Subset the parameter vector theta
+          gamma <- theta[k+1]
+          sigma2 <- exp(gamma)                # Ensure that sigma^2 is positive
+          e <- y - X %*% beta                     # Calculate the residuals
+          llik <- - (n/2)* log(sigma2) -          # Estimate Log-Likelihood
+            (t (e) %*% (e) / (2*sigma2) )
           return(llik)                                # Return Result for optim()
         }
       } else{
@@ -54,17 +55,17 @@ mlewrap <-
           n <- nrow(X)                                # No. of observations
           k <- ncol(X)                                # No. of betas
           l <- ncol(Z)                                # No. of gammas
-          beta_hat <- theta[1:k]                      # Subset the parameter vector theta
-          gamma_hat <- theta[(k+1):(k+l)]
-          sigma2_hat <- exp(Z %*% gamma_hat)          # Parameterize sigma squared
-          e <- y - X %*% beta_hat                     # Calculate the residuals
-          llik <- -1/2*log(sigma2_hat) -              # Estimate Log-Likelihood
-            1/2*(e^2/(sigma2_hat))
+          beta <- theta[1:k]                      # Subset the parameter vector theta
+          gamma <- theta[(k+1):(k+l)]
+          sigma2 <- exp(Z %*% gamma)          # Parameterize sigma squared
+          e <- y - X %*% beta                     # Calculate the residuals
+          llik <- -1/2*log(sigma2) -              # Estimate Log-Likelihood
+            1/2*(e^2/(sigma2))
           llik <- sum(llik)
           return(llik)                                # Return Result for optim()
         }
       }
-    } else if(ll=="logit"){# Logit
+    } else if(ll=="logit" | ll=="scobit"){# Logit
       lik_func <- function(theta, y, X) {
         # theta consists merely of beta (dim is ncol(X))
         beta <- theta[1:ncol(X)]
@@ -117,9 +118,39 @@ mlewrap <-
         hessian = T,                              # Include Hessian Matrix in Return
         lower = lower)
     }
+
+    if(ll=="scobit"){ # Scobit
+      res_logit <- res
+
+      lik_func <- function(theta, y, X) {
+
+        beta <- theta[1:ncol(X)]
+        gamma <- theta[ncol(X)+1]
+
+        mu <- X %*% beta
+
+        alpha <- exp(gamma)
+
+        p <- 1/((1+exp(-mu))^alpha)
+
+        ll <- y * log(p) + (1 - y) * log(1 - p)
+        ll <- sum(ll)
+        return(ll)
+      }
+      res <- stats::optim(
+        par = par_scobit,                         # Define Startvalues for Parameters (Defualt: logit parameters)
+        fn = lik_func,                            # Input function from above
+        y = y,                                    # Input DV
+        X = X,                                    # Input Intercept and IVs
+        control = control,                        # Define Control-Option
+        method = method,                          # Define Climbing-Option
+        hessian = T,                              # Include Hessian Matrix in Return
+        lower = lower)
+    }
+
     ##### Adding information ---
-    if(ll=="linear" & !hetero){
-      res$par[length(res$par)] <-                 # Transform gamma_hat to sigma^2_hat
+    if(ll=="linear" & !hetero | ll=="scobit"){
+      res$par[length(res$par)] <-                 # Transform gamma to sigma2/alpha
         exp(res$par[length(res$par)])}
     res$se <- sqrt(diag(solve(-(res$hessian))))   # Standard errors
     t <- res$par / res$se                         # t-values
@@ -154,6 +185,15 @@ mlewrap <-
       rownames(res$gammas) <-  c("Int.", ZV)         # Give Table Row-Names
       colnames(res$gammas)[3:4] <- colnames(res$betas)[3:4] # Label CIs correctly
       res$meanvar <- apply(exp(Z %*% res$par[(ncol(X)+1):(ncol(X)+ncol(Z))]),2,mean)
+    }
+
+    if(ll=="scobit"){
+      # Compute log-likelihood ratio between scobit and logit models
+      R <- 2 * (res$value - res_logit$value)
+      llratio <- pchisq(R,
+                        df = 1,
+                        lower.tail = FALSE)
+      # --> Significant Result indicates that the scobit model is better
     }
 
     ##### Optional: Add bootstrapped SE, p- and t-values ---
@@ -248,6 +288,17 @@ mlewrap <-
         if(hetero){
           cat("Mean Var.", res$meanvar)
         } else{ cat("Variance:", res$par[length(res$par)])}
+      } else if(ll=="scobit"){
+        cat("Alpha:", res$par[length(res$par)])
+        cat("\n")
+        cat("Likelihood-ratio test of alpha=1: Prob > chi2 =", llratio)
+        if(llratio <= 0.05){
+          cat("\n")
+          cat(" --> Logit-Model should be prefered")
+        } else{
+          cat("\n")
+          cat(" --> Scobit-Model should be prefered")
+        }
       } else {
         cat("AIC:", res$aic)
         cat("\n")
@@ -278,8 +329,18 @@ mlewrap <-
         if(hetero){
           cat("Mean Var.", round(res$meanvar, digits))
         } else{cat("Variance:", round(res$par[length(res$par)], digits))}
-      }
-      else {
+      } else if(ll=="scobit"){
+        cat("Alpha:", round(res$par[length(res$par)], digits))
+        cat("\n")
+        cat("Likelihood-ratio test of alpha=1: Prob > chi2 =", round(llratio, digits))
+        if(llratio <= 0.05){
+          cat("\n")
+          cat(" --> Logit-Model should be prefered")
+        } else{
+          cat("\n")
+          cat(" --> Scobit-Model should be prefered")
+        }
+      } else {
         cat("AIC:", round(res$aic, digits))
         cat("\n")
         cat("BIC:", round(res$bic, digits))
