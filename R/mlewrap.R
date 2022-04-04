@@ -13,6 +13,7 @@ mlewrap <-
            } else{rep(0, ncol(X))}, # Creates vector of 0s as start values
            control, # Defines control for optim()
            method, # Defines method of optim()
+           lower=-Inf, # Bounds on the variables for the "L-BFGS-B" method
            seed = F, # If T, seed = 1312
            digits, # Defines decimal points in output
            ci=95, # Define CI Level
@@ -31,7 +32,7 @@ mlewrap <-
     }
     if(hetero){
       if (!all(Z[, 1] == 1)) {
-        X <- cbind(1, Z)
+        Z <- cbind(1, Z)
       }}
 
     ##### Likelihood Function ---
@@ -91,9 +92,7 @@ mlewrap <-
         ll <- sum(ll)
         return(ll)
       }
-
     }
-
 
     ##### Optimization ---
     if(hetero){
@@ -105,7 +104,8 @@ mlewrap <-
         Z = Z,                                    # Input Intercept and IVs
         control = control,                        # Define Control-Option
         method = method,                          # Define Climbing-Option
-        hessian = T)                              # Include Hessian Matrix in Return
+        hessian = T,                              # Include Hessian Matrix in Return
+        lower = lower)
     } else {
       res <- stats::optim(
         par = par,                                # Define Startvalues for Parameters
@@ -114,7 +114,8 @@ mlewrap <-
         X = X,                                    # Input Intercept and IVs
         control = control,                        # Define Control-Option
         method = method,                          # Define Climbing-Option
-        hessian = T)                              # Include Hessian Matrix in Return
+        hessian = T,                              # Include Hessian Matrix in Return
+        lower = lower)
     }
     ##### Adding information ---
     if(ll=="linear" & !hetero){
@@ -166,17 +167,18 @@ mlewrap <-
           bs_samp  <-                               # Draw Bootstrap Sample
             data[sample(1:samplesize, replace = TRUE),]
           y_bs <- bs_samp[,1]                       # Index Bootstrap DV
-          X_bs <- bs_samp[,2:(ncol(X)+1)  ]         # Index Int. and Bootstrap IVs
-          Z_bs <- bs_samp[,(ncol(X)+2):ncol(bs_samp)] # Index Sigma2 IVs
+          X_bs <- bs_samp[,2:(ncol(X)+1)]           # Index Int. and Bootstrap IVs
+          Z_bs <- bs_samp[,-c(1:(ncol(X)+1))]       # Index Sigma2 IVs
 
-          res_bs  <- stats::optim(                         # Running similar optimization as above:
+          res_bs  <- stats::optim(                  # Running similar optimization as above:
             par = par,                              # Define Startvalues for Parameters
             fn = lik_func,                          # Input function from above
             y = y_bs,                               # Input Bootstrap DV
             X = X_bs,                               # Input Bootstrap Intercept and IVs
             Z = Z_bs,                                # Input Bootstrap Sigma2 IVs
             control = control,                      # Define Control-Option
-            method = method)                        # Define Climbing-Option
+            method = method,                         # Define Climbing-Option
+            lower = lower)
           return(res_bs$par)}
       } else {
         mle_bs <- function(){
@@ -192,7 +194,8 @@ mlewrap <-
             y = y_bs,                               # Input Bootstrap DV
             X = X_bs,                               # Input Bootstrap Intercept and IVs
             control = control,                      # Define Control-Option
-            method = method)                        # Define Climbing-Option
+            method = method,                        # Define Climbing-Option
+            lower = lower)
           return(res_bs$par)}
       }
 
