@@ -229,7 +229,8 @@ mlewrap <-
           X_bs <- bs_samp[,2:ncol(bs_samp)]         # Index Int. and Bootstrap IVs
 
           res_bs  <- stats::optim(                         # Running similar optimization as above:
-            par = par,                              # Define Startvalues for Parameters
+            if(ll=="scobit"){par = par_scobit}
+            else{par = par},                        # Define Startvalues for Parameters
             fn = lik_func,                          # Input function from above
             y = y_bs,                               # Input Bootstrap DV
             X = X_bs,                               # Input Bootstrap Intercept and IVs
