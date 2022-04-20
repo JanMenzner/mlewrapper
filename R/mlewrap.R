@@ -292,9 +292,14 @@ mlewrap <-
           return(res_bs$par)}
       } else if(ll=="ologit" | ll=="oprobit"){
         mle_bs <- function(){
-          data <- cbind(y,X  )                      # Prepare Data Set
+          data <- cbind(y,X)                        # Prepare Data Set
           bs_samp  <-                               # Draw Bootstrap Sample
             data[sample(1:samplesize, replace = TRUE),]
+
+          if(length(unique(bs_samp[,1])) != length(unique(y))){
+            stop("Bootstrapped samples do not include all DV categories. \n
+                 I suggest using a different seed or specify higher samplesize.")
+          }
           y_bs <- bs_samp[,1]                       # Index Bootstrap DV
           X_bs <- bs_samp[,2:(ncol(X)+1)]           # Index Bootstrap IVs
           cats_bs <- sort(unique(y_bs))  # Different categories in dep.var
@@ -523,5 +528,6 @@ mlewrap <-
       invisible(res)
     }
   }
+
 
 
